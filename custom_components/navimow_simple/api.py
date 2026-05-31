@@ -8,14 +8,15 @@ from typing import Any, Protocol
 import aiohttp
 
 from .const import (
+    ALREADY_IN_STATE,
     AUTH_ERROR_CODES,
     BASE_URL,
     COMMANDS,
-    DEVICE_SN_KEY,
     PATH_AUTH_LIST,
     PATH_COMMANDS,
     PATH_STATUS,
     STATE_MAP,
+    SUCCESS_CODE,
 )
 
 
@@ -38,7 +39,7 @@ class TokenSource(Protocol):
 
 
 class NavimowClient:
-    """Drei REST-Calls gegen die smarthome-openapi."""
+    """Drei REST-Calls gegen die smarthome-openapi (Envelope code==1)."""
 
     def __init__(
         self,
@@ -57,7 +58,8 @@ class NavimowClient:
         *,
         json: dict[str, Any] | None = None,
         _retried: bool = False,
-    ) -> Any:
+    ) -> dict[str, Any]:
+        """Sendet Request, prüft Envelope, gibt data.payload zurück."""
         token = await self._tokens.async_get_valid_token(
             force_refresh=_retried
         )
@@ -71,35 +73,56 @@ class NavimowClient:
                 method, f"{self._base}{path}", json=json, headers=headers
             ) as resp:
                 status = resp.status
-                payload = await resp.json(content_type=None)
+                body = await resp.json(content_type=None)
         except aiohttp.ClientError as err:
             raise NavimowApiError(f"HTTP-Fehler bei {path}: {err}") from err
 
-        code = str(payload.get("code")) if isinstance(payload, dict) else None
-        if status in (401, 403) or (code in AUTH_ERROR_CODES):
+        code = body.get("code") if isinstance(body, dict) else None
+        if status in (401, 403) or (str(code) in AUTH_ERROR_CODES):
             if not _retried:
                 return await self._request(
                     method, path, json=json, _retried=True
                 )
             raise NavimowAuthError(f"Auth abgelehnt bei {path} (code={code})")
-        if status >= 400 or (code not in (None, "0", "200")):
+        if code != SUCCESS_CODE:
+            desc = body.get("desc") if isinstance(body, dict) else None
             raise NavimowApiError(
-                f"API-Fehler bei {path}: HTTP {status} code={code}"
+                f"API-Fehler bei {path}: code={code} desc={desc}"
             )
-        return payload.get("data") if isinstance(payload, dict) else payload
+        return body.get("data", {}).get("payload", {})
 
     async def async_get_devices(self) -> list[dict[str, Any]]:
-        data = await self._request("GET", PATH_AUTH_LIST)
-        return data or []
+        payload = await self._request("GET", PATH_AUTH_LIST)
+        return payload.get("devices", [])
 
-    async def async_get_status(self, device_sn: str) -> dict[str, Any]:
-        return await self._request(
-            "POST", PATH_STATUS, json={DEVICE_SN_KEY: device_sn}
+    async def async_get_status(self, device_id: str) -> dict[str, Any]:
+        payload = await self._request(
+            "POST", PATH_STATUS, json={"devices": [{"id": device_id}]}
         )
+        devices = payload.get("devices", [])
+        if not devices:
+            raise NavimowApiError(f"Kein Status für Gerät {device_id}")
+        return devices[0]
 
-    async def async_send_command(self, device_sn: str, action: str) -> None:
-        body = {DEVICE_SN_KEY: device_sn, **COMMANDS[action]}
-        await self._request("POST", PATH_COMMANDS, json=body)
+    async def async_send_command(self, device_id: str, action: str) -> None:
+        body = {
+            "commands": [
+                {
+                    "devices": [{"id": device_id}],
+                    "execution": COMMANDS[action],
+                }
+            ]
+        }
+        payload = await self._request("POST", PATH_COMMANDS, json=body)
+        for result in payload.get("commands", []):
+            if (
+                result.get("status") == "ERROR"
+                and result.get("errorCode") != ALREADY_IN_STATE
+            ):
+                raise NavimowApiError(
+                    f"Befehl '{action}' fehlgeschlagen: "
+                    f"{result.get('errorCode')}"
+                )
 
 
 def state_to_activity(raw: str | None):
