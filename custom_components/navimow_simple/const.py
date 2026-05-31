@@ -18,9 +18,10 @@ PATH_TOKEN: Final = "/openapi/oauth/getAccessToken"
 CLIENT_ID: Final = "homeassistant"
 CLIENT_SECRET: Final = "57056e15-722e-42be-bbaa-b0cbfb208a52"
 
-# API-seitiger Schlüssel für die Geräte-Seriennummer im Request-Body.
-# Vom Spike bestätigt (authList/getVehicleStatus).
-DEVICE_SN_KEY: Final = "deviceSn"
+# Erfolgscode des smarthome-Envelopes (NICHT 0/200).
+SUCCESS_CODE: Final = 1
+# Command-Result-Code "schon im Zielzustand" -> als Erfolg werten.
+ALREADY_IN_STATE: Final = "alreadyInState"
 
 # --- Polling -----------------------------------------------------------
 UPDATE_INTERVAL_SECONDS: Final = 90
@@ -29,26 +30,43 @@ TOKEN_EXPIRY_BUFFER_SECONDS: Final = 60
 # --- Fehlercodes (Auth) ------------------------------------------------
 AUTH_ERROR_CODES: Final = frozenset({"4003", "TOKEN_EMPTY"})
 
-# --- vehicleState -> LawnMowerActivity ---------------------------------
-# "isDocked" ist aus Live-Test belegt; die übrigen Strings stammen aus
-# dem Spike (docs/spike-findings.md) und werden hier eingetragen.
+# --- vehicleState -> LawnMowerActivity (autoritativ aus SDK) -----------
 STATE_MAP: Final[dict[str, LawnMowerActivity]] = {
     "isDocked": LawnMowerActivity.DOCKED,
-    "isCharging": LawnMowerActivity.DOCKED,
-    "isMowing": LawnMowerActivity.MOWING,
-    "isWorking": LawnMowerActivity.MOWING,
+    "isIdle": LawnMowerActivity.DOCKED,
+    "isIdel": LawnMowerActivity.DOCKED,
+    "Self-Checking": LawnMowerActivity.DOCKED,
+    "Self-checking": LawnMowerActivity.DOCKED,
+    "isMapping": LawnMowerActivity.MOWING,
+    "isRunning": LawnMowerActivity.MOWING,
     "isPaused": LawnMowerActivity.PAUSED,
-    "isReturning": LawnMowerActivity.RETURNING,
-    "isError": LawnMowerActivity.ERROR,
+    "inSoftwareUpdate": LawnMowerActivity.PAUSED,
+    "isDocking": LawnMowerActivity.RETURNING,
+    "Error": LawnMowerActivity.ERROR,
+    "error": LawnMowerActivity.ERROR,
+    "isLifted": LawnMowerActivity.ERROR,
+    "Offline": LawnMowerActivity.ERROR,
+    "offline": LawnMowerActivity.ERROR,
 }
 
-# --- Command-Payloads --------------------------------------------------
-# Exakte Body-Schemata aus dem Spike. Platzhalter-Form, wird 1:1 ersetzt.
+# --- Command-Payloads (Google-Smart-Home-Grammatik) --------------------
+# action -> execution-Objekt (command + optional params).
 COMMANDS: Final[dict[str, dict]] = {
-    "start": {"command": "start"},
-    "pause": {"command": "pause"},
-    "dock": {"command": "dock"},
+    "start": {
+        "command": "action.devices.commands.StartStop",
+        "params": {"on": True},
+    },
+    "stop": {
+        "command": "action.devices.commands.StartStop",
+        "params": {"on": False},
+    },
+    "pause": {
+        "command": "action.devices.commands.PauseUnpause",
+        "params": {"on": False},
+    },
+    "resume": {
+        "command": "action.devices.commands.PauseUnpause",
+        "params": {"on": True},
+    },
+    "dock": {"command": "action.devices.commands.Dock"},
 }
-
-# Auth-Strategie aus Spike: True = stiller E-Mail+PW-Login (Weg A).
-SILENT_PASSWORD_LOGIN: Final = True
