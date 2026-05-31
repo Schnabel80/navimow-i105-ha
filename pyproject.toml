@@ -23,6 +23,8 @@ dev = [
 [tool.ruff]
 line-length = 79
 target-version = "py313"
+# Wegwerf-Spike-Skript (Phase 0): bewusst print-basiert, nicht lint-relevant.
+extend-exclude = ["scripts"]
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","BLE","SIM","C90","RUF","ASYNC","PERF","PGH","G","T20","TC"]
