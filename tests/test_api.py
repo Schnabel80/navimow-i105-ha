@@ -3,7 +3,6 @@ from aioresponses import aioresponses
 
 from custom_components.navimow_simple import const
 from custom_components.navimow_simple.api import (
-    NavimowApiError,
     NavimowAuthError,
     NavimowClient,
 )
@@ -81,3 +80,40 @@ async def test_send_command_merges_action_payload(tokens):
     assert body[const.DEVICE_SN_KEY] == "SN1"
     for k, v in const.COMMANDS["start"].items():
         assert body[k] == v
+
+
+@pytest.mark.asyncio
+async def test_4003_triggers_one_retry_with_force_refresh(tokens):
+    import aiohttp
+
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}", payload={"code": "4003"}
+        )
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}",
+            payload={"code": "0", "data": {"vehicleState": "isDocked"}},
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            data = await client.async_get_status("SN1")
+
+    assert data["vehicleState"] == "isDocked"
+    assert tokens.calls == [False, True]
+
+
+@pytest.mark.asyncio
+async def test_persistent_4003_raises_auth_error(tokens):
+    import aiohttp
+
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}", payload={"code": "4003"}
+        )
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}", payload={"code": "4003"}
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            with pytest.raises(NavimowAuthError):
+                await client.async_get_status("SN1")
