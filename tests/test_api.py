@@ -44,3 +44,40 @@ async def test_get_devices_sends_bearer_and_requestid(tokens):
     headers = req.kwargs["headers"]
     assert headers["Authorization"] == "Bearer tok-1"
     assert "requestId" in headers and len(headers["requestId"]) >= 10
+
+
+@pytest.mark.asyncio
+async def test_get_status_posts_sn(tokens):
+    import aiohttp
+
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}",
+            payload={"code": "0", "data": {"vehicleState": "isDocked"}},
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            data = await client.async_get_status("SN1")
+
+    assert data["vehicleState"] == "isDocked"
+    req = next(iter(m.requests.values()))[0]
+    assert req.kwargs["json"] == {const.DEVICE_SN_KEY: "SN1"}
+
+
+@pytest.mark.asyncio
+async def test_send_command_merges_action_payload(tokens):
+    import aiohttp
+
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_COMMANDS}", payload={"code": "0"}
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            await client.async_send_command("SN1", "start")
+
+    req = next(iter(m.requests.values()))[0]
+    body = req.kwargs["json"]
+    assert body[const.DEVICE_SN_KEY] == "SN1"
+    for k, v in const.COMMANDS["start"].items():
+        assert body[k] == v
