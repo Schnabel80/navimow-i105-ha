@@ -206,7 +206,7 @@ git push
 [project]
 name = "hass-navimow-simple"
 version = "0.1.0"
-requires-python = ">=3.13"
+requires-python = ">=3.14.2"  # HA 2026.3+ verlangt Python >=3.14.2
 dependencies = []
 
 [dependency-groups]
