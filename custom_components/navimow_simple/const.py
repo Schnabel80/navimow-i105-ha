@@ -1,4 +1,5 @@
 """Constants for the Navimow Simple integration."""
+
 from __future__ import annotations
 
 from typing import Final

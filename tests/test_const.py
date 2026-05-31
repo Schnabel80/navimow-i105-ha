@@ -9,6 +9,7 @@ def test_core_constants_present():
 
 def test_state_map_has_known_docked_value():
     from homeassistant.components.lawn_mower import LawnMowerActivity
+
     assert const.STATE_MAP["isDocked"] == LawnMowerActivity.DOCKED
 
 

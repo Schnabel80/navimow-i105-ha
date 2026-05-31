@@ -1,4 +1,5 @@
 """HA-unabhängiger HTTP-Client für die Navimow smarthome-openapi."""
+
 from __future__ import annotations
 
 import uuid

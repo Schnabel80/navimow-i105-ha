@@ -68,9 +68,7 @@ async def test_send_command_merges_action_payload(tokens):
     import aiohttp
 
     with aioresponses() as m:
-        m.post(
-            f"{const.BASE_URL}{const.PATH_COMMANDS}", payload={"code": "0"}
-        )
+        m.post(f"{const.BASE_URL}{const.PATH_COMMANDS}", payload={"code": "0"})
         async with aiohttp.ClientSession() as session:
             client = NavimowClient(session, tokens)
             await client.async_send_command("SN1", "start")
