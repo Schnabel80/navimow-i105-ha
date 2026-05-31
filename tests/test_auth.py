@@ -46,3 +46,22 @@ async def test_expired_token_triggers_relogin():
     tm = TokenManager(login=login)
     assert await tm.async_get_valid_token() == "A"  # erster Login
     assert await tm.async_get_valid_token() == "B"  # abgelaufen -> relogin
+
+
+@pytest.mark.asyncio
+async def test_parallel_access_logs_in_once():
+    calls = []
+
+    async def login():
+        calls.append(1)
+        import asyncio as _a
+
+        await _a.sleep(0.01)
+        return {"access_token": "A", "expires_at": time.time() + 3600}
+
+    tm = TokenManager(login=login)
+    import asyncio as _a
+
+    results = await _a.gather(*[tm.async_get_valid_token() for _ in range(5)])
+    assert results == ["A"] * 5
+    assert len(calls) == 1  # Lock verhindert 5 parallele Logins
