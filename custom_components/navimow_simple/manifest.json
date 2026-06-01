@@ -1,7 +1,7 @@
 {
   "domain": "navimow_simple",
   "name": "Navimow Simple",
-  "version": "0.1.0",
+  "version": "0.1.0a1",
   "documentation": "https://github.com/Schnabel80/navimow-i105-ha",
   "issue_tracker": "https://github.com/Schnabel80/navimow-i105-ha/issues",
   "codeowners": ["@Schnabel80"],
