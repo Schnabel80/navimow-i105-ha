@@ -49,3 +49,18 @@ async def test_battery_and_status_sensors(hass: HomeAssistant):
     # genau zwei Sensoren; Akku=73, Status=isDocked
     assert any(v == "73" for v in sensors.values())
     assert any(v == "isDocked" for v in sensors.values())
+
+
+@pytest.mark.asyncio
+async def test_native_value_none_without_data(hass: HomeAssistant):
+    from custom_components.navimow_simple.coordinator import (
+        NavimowCoordinator,
+    )
+    from custom_components.navimow_simple.sensor import SENSORS, NavimowSensor
+
+    coord = NavimowCoordinator(
+        hass, object(), device_sn="SN1", device_name="Maeher"
+    )
+    coord.data = None
+    sensor = NavimowSensor(coord, SENSORS[0])
+    assert sensor.native_value is None

@@ -50,14 +50,16 @@ async def test_activity_mowing(hass: HomeAssistant):
     assert states[0].state == LawnMowerActivity.MOWING
 
 
-@pytest.mark.asyncio
-async def test_start_calls_send_command(hass: HomeAssistant):
-    await _setup(hass, {"vehicleState": "isDocked", "capacityRemaining": []})
-    entity_id = next(
+def _entity_id(hass: HomeAssistant) -> str:
+    return next(
         s.entity_id
         for s in hass.states.async_all()
         if s.domain == "lawn_mower"
     )
+
+
+async def _call_and_capture_action(hass: HomeAssistant, service: str) -> str:
+    entity_id = _entity_id(hass)
     with (
         patch(
             "custom_components.navimow_simple.NavimowClient."
@@ -74,9 +76,42 @@ async def test_start_calls_send_command(hass: HomeAssistant):
     ):
         await hass.services.async_call(
             "lawn_mower",
-            "start_mowing",
+            service,
             {"entity_id": entity_id},
             blocking=True,
         )
     send.assert_awaited_once()
-    assert send.await_args.args[1] == "start"
+    return send.await_args.args[1]
+
+
+@pytest.mark.asyncio
+async def test_start_calls_send_command(hass: HomeAssistant):
+    await _setup(hass, {"vehicleState": "isDocked", "capacityRemaining": []})
+    assert await _call_and_capture_action(hass, "start_mowing") == "start"
+
+
+@pytest.mark.asyncio
+async def test_pause_calls_send_command(hass: HomeAssistant):
+    await _setup(hass, {"vehicleState": "isRunning", "capacityRemaining": []})
+    assert await _call_and_capture_action(hass, "pause") == "pause"
+
+
+@pytest.mark.asyncio
+async def test_dock_calls_send_command(hass: HomeAssistant):
+    await _setup(hass, {"vehicleState": "isRunning", "capacityRemaining": []})
+    assert await _call_and_capture_action(hass, "dock") == "dock"
+
+
+@pytest.mark.asyncio
+async def test_activity_none_when_no_data(hass: HomeAssistant):
+    from custom_components.navimow_simple.coordinator import (
+        NavimowCoordinator,
+    )
+    from custom_components.navimow_simple.lawn_mower import NavimowLawnMower
+
+    coord = NavimowCoordinator(
+        hass, object(), device_sn="SN1", device_name="Maeher"
+    )
+    coord.data = None
+    entity = NavimowLawnMower(coord)
+    assert entity.activity is None

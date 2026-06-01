@@ -1,9 +1,14 @@
 from unittest.mock import patch
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.navimow_simple.api import (
+    NavimowAuthError,
+    NavimowError,
+)
 from custom_components.navimow_simple.const import DOMAIN
 
 
@@ -58,3 +63,56 @@ async def test_setup_and_unload(hass: HomeAssistant):
         await hass.async_block_till_done()
         assert entry.runtime_data.coordinator.data["battery"] == 50
         assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.asyncio
+async def test_setup_no_devices_not_ready(hass: HomeAssistant):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.navimow_simple.NavimowClient.async_get_devices",
+        return_value=[],
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.asyncio
+async def test_setup_api_error_not_ready(hass: HomeAssistant):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.navimow_simple.NavimowClient.async_get_devices",
+        side_effect=NavimowError("boom"),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.asyncio
+async def test_setup_token_refresh_failure_auth_failed(hass: HomeAssistant):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    with patch(
+        "homeassistant.helpers.config_entry_oauth2_flow.OAuth2Session."
+        "async_ensure_token_valid",
+        side_effect=Exception("token refresh failed"),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+
+
+@pytest.mark.asyncio
+async def test_setup_auth_error_auth_failed(hass: HomeAssistant):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.navimow_simple.NavimowClient.async_get_devices",
+        side_effect=NavimowAuthError("nope"),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_ERROR

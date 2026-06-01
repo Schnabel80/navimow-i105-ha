@@ -186,3 +186,29 @@ async def test_api_error_on_non_success_code(tokens):
             client = NavimowClient(session, tokens)
             with pytest.raises(NavimowApiError):
                 await client.async_get_status("SN1")
+
+
+@pytest.mark.asyncio
+async def test_client_error_wrapped_as_api_error(tokens):
+    with aioresponses() as m:
+        m.get(
+            f"{const.BASE_URL}{const.PATH_AUTH_LIST}",
+            exception=aiohttp.ClientError("connection reset"),
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            with pytest.raises(NavimowApiError):
+                await client.async_get_devices()
+
+
+@pytest.mark.asyncio
+async def test_get_status_empty_devices_raises(tokens):
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}",
+            payload={"code": 1, "data": {"payload": {"devices": []}}},
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            with pytest.raises(NavimowApiError):
+                await client.async_get_status("SN1")
