@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": { "title": "Navimow-Konto verbinden" },
+      "reauth_confirm": {
+        "title": "Navimow erneut anmelden",
+        "description": "Die Navimow-Anmeldung ist abgelaufen. Bitte erneut verbinden."
+      }
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits eingerichtet.",
+      "reauth_successful": "Erneute Anmeldung erfolgreich.",
+      "missing_configuration": "Die Integration ist nicht konfiguriert.",
+      "oauth_error": "Ungültige Token-Antwort erhalten.",
+      "oauth_timeout": "Zeitüberschreitung bei der Anmeldung.",
+      "oauth_unauthorized": "OAuth-Autorisierung fehlgeschlagen.",
+      "user_rejected_authorize": "Autorisierung abgebrochen."
+    },
+    "create_entry": { "default": "Navimow erfolgreich verbunden." }
+  }
+}
