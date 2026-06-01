@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers import config_entry_oauth2_flow
 
+from .auth import NavimowOAuth2Implementation
 from .const import DOMAIN
 
 if TYPE_CHECKING:
@@ -32,6 +33,12 @@ class NavimowOAuth2FlowHandler(
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        # HA ruft async_setup für eine frische OAuth-Integration nicht vor
+        # dem Flow auf -> Implementation hier registrieren, sonst bricht der
+        # Flow mit "missing_configuration" ab.
+        config_entry_oauth2_flow.async_register_implementation(
+            self.hass, DOMAIN, NavimowOAuth2Implementation(self.hass)
+        )
         await self.async_set_unique_id(DOMAIN)
         if self.source != "reauth":
             self._abort_if_unique_id_configured()

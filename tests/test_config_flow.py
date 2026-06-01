@@ -109,6 +109,21 @@ async def test_full_oauth_flow(
 
 
 @pytest.mark.asyncio
+async def test_user_flow_registers_implementation_without_setup(
+    hass: HomeAssistant,
+    current_request_with_host,
+):
+    # OHNE async_setup_component: HA ruft async_setup für eine frische
+    # OAuth-Integration nicht vor dem Flow auf. Der Flow muss die
+    # Implementation selbst registrieren, sonst -> "missing_configuration".
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    assert result["type"] is FlowResultType.EXTERNAL_STEP
+    assert "channel=homeassistant" in result["url"]
+
+
+@pytest.mark.asyncio
 async def test_user_flow_aborts_if_already_configured(
     hass: HomeAssistant,
     current_request_with_host,
