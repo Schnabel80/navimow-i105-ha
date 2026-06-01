@@ -27,7 +27,11 @@ from .coordinator import NavimowCoordinator
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-PLATFORMS: list[Platform] = [Platform.LAWN_MOWER, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.BUTTON,
+    Platform.LAWN_MOWER,
+    Platform.SENSOR,
+]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 

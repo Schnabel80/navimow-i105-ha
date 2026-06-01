@@ -21,6 +21,10 @@
   "entity": {
     "sensor": {
       "status": { "name": "Status" }
+    },
+    "button": {
+      "stop": { "name": "Stopp" },
+      "resume": { "name": "Fortsetzen" }
     }
   }
 }
