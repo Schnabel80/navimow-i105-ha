@@ -11,7 +11,12 @@ from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
 )
-from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers import (
+    config_entry_oauth2_flow,
+)
+from homeassistant.helpers import (
+    config_validation as cv,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NavimowAuthError, NavimowClient, NavimowError
@@ -23,6 +28,8 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 PLATFORMS: list[Platform] = [Platform.LAWN_MOWER, Platform.SENSOR]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 @dataclass

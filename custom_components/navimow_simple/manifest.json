@@ -1,13 +1,13 @@
 {
   "domain": "navimow_simple",
   "name": "Navimow Simple",
-  "version": "0.1.0a1",
-  "documentation": "https://github.com/Schnabel80/navimow-i105-ha",
-  "issue_tracker": "https://github.com/Schnabel80/navimow-i105-ha/issues",
   "codeowners": ["@Schnabel80"],
   "config_flow": true,
   "dependencies": ["auth"],
-  "iot_class": "cloud_polling",
+  "documentation": "https://github.com/Schnabel80/navimow-i105-ha",
   "integration_type": "device",
-  "requirements": []
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Schnabel80/navimow-i105-ha/issues",
+  "requirements": [],
+  "version": "0.1.0a1"
 }
