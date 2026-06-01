@@ -14,8 +14,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # 'brands' ausgesetzt bis Logo-PR an home-assistant/brands gemerged ist.
-          ignore: brands
 
   test:
     runs-on: ubuntu-latest
