@@ -18,6 +18,12 @@ PATH_TOKEN: Final = "/openapi/oauth/getAccessToken"
 CLIENT_ID: Final = "homeassistant"
 CLIENT_SECRET: Final = "57056e15-722e-42be-bbaa-b0cbfb208a52"
 
+# --- OAuth2 ------------------------------------------------------------
+OAUTH2_AUTHORIZE: Final = "https://navimow-h5-fra.willand.com/smartHome/login"
+OAUTH2_TOKEN: Final = (
+    "https://navimow-fra.ninebot.com/openapi/oauth/getAccessToken"
+)
+
 # Erfolgscode des smarthome-Envelopes (NICHT 0/200).
 SUCCESS_CODE: Final = 1
 # Command-Result-Code "schon im Zielzustand" -> als Erfolg werten.
