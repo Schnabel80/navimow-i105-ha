@@ -1,0 +1,26 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": { "title": "Connect Navimow account" },
+      "reauth_confirm": {
+        "title": "Re-authenticate Navimow",
+        "description": "The Navimow login has expired. Please reconnect."
+      }
+    },
+    "abort": {
+      "already_configured": "Device is already configured.",
+      "reauth_successful": "Re-authentication successful.",
+      "missing_configuration": "The integration is not configured.",
+      "oauth_error": "Received an invalid token response.",
+      "oauth_timeout": "Timed out during sign-in.",
+      "oauth_unauthorized": "OAuth authorization failed.",
+      "user_rejected_authorize": "Authorization cancelled."
+    },
+    "create_entry": { "default": "Navimow connected successfully." }
+  },
+  "entity": {
+    "sensor": {
+      "status": { "name": "Status" }
+    }
+  }
+}
