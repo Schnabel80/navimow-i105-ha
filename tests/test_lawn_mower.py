@@ -1,9 +1,14 @@
+from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
+import homeassistant.util.dt as dt_util
 import pytest
 from homeassistant.components.lawn_mower import LawnMowerActivity
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.navimow_simple.const import DOMAIN
 
@@ -80,6 +85,10 @@ async def _call_and_capture_action(hass: HomeAssistant, service: str) -> str:
             {"entity_id": entity_id},
             blocking=True,
         )
+        # Verzögerten 10-s-Timer noch im Patch-Kontext abarbeiten,
+        # damit kein Timer den Patch überlebt (lingering timer).
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
     send.assert_awaited_once()
     return send.await_args.args[1]
 
@@ -100,6 +109,39 @@ async def test_pause_calls_send_command(hass: HomeAssistant):
 async def test_dock_calls_send_command(hass: HomeAssistant):
     await _setup(hass, {"vehicleState": "isRunning", "capacityRemaining": []})
     assert await _call_and_capture_action(hass, "dock") == "dock"
+
+
+@pytest.mark.asyncio
+async def test_command_triggers_delayed_refresh(hass: HomeAssistant):
+    await _setup(hass, {"vehicleState": "isDocked", "capacityRemaining": []})
+    entity_id = _entity_id(hass)
+    with (
+        patch(
+            "custom_components.navimow_simple.NavimowClient."
+            "async_send_command",
+            new=AsyncMock(),
+        ),
+        patch(
+            "custom_components.navimow_simple.NavimowClient.async_get_status",
+            new=AsyncMock(
+                return_value={
+                    "vehicleState": "isRunning",
+                    "capacityRemaining": [],
+                }
+            ),
+        ) as status,
+    ):
+        await hass.services.async_call(
+            "lawn_mower",
+            "start_mowing",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
+        immediate = status.await_count
+        # 10-s-Timer feuern (innerhalb des Patches!)
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+        await hass.async_block_till_done()
+        assert status.await_count > immediate  # verzögertes Refresh kam
 
 
 @pytest.mark.asyncio

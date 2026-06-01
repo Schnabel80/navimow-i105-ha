@@ -1,8 +1,13 @@
+from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
+import homeassistant.util.dt as dt_util
 import pytest
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.navimow_simple.const import DOMAIN
 
@@ -68,5 +73,11 @@ async def test_stop_and_resume_buttons(hass: HomeAssistant):
                 {"entity_id": entity_id},
                 blocking=True,
             )
+            # Verzögerten 10-s-Timer noch im Patch-Kontext abarbeiten,
+            # damit kein Timer den Patch überlebt (lingering timer).
+            async_fire_time_changed(
+                hass, dt_util.utcnow() + timedelta(seconds=11)
+            )
+            await hass.async_block_till_done()
         send.assert_awaited_once()
         assert send.await_args.args[1] == action

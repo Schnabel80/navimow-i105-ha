@@ -33,6 +33,10 @@ ALREADY_IN_STATE: Final = "alreadyInState"
 UPDATE_INTERVAL_SECONDS: Final = 90
 TOKEN_EXPIRY_BUFFER_SECONDS: Final = 60
 
+# Verzögertes Refresh nach einem Steuerbefehl
+# (Mäher braucht Zeit zum Umsetzen).
+POST_COMMAND_REFRESH_DELAY_SECONDS: Final = 10
+
 # --- Fehlercodes (Auth) ------------------------------------------------
 AUTH_ERROR_CODES: Final = frozenset({"4003", "TOKEN_EMPTY"})
 

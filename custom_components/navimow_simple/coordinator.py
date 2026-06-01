@@ -7,13 +7,18 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
 
 from .api import NavimowAuthError, NavimowError
-from .const import DOMAIN, UPDATE_INTERVAL_SECONDS
+from .const import (
+    DOMAIN,
+    POST_COMMAND_REFRESH_DELAY_SECONDS,
+    UPDATE_INTERVAL_SECONDS,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -55,6 +60,16 @@ class NavimowCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.client = client
         self.device_sn = device_sn
         self.device_name = device_name
+
+    def async_schedule_post_command_refresh(self) -> None:
+        """Plant ein einmaliges Refresh ~10 s nach einem Steuerbefehl."""
+
+        async def _refresh(_now) -> None:
+            await self.async_request_refresh()
+
+        async_call_later(
+            self.hass, POST_COMMAND_REFRESH_DELAY_SECONDS, _refresh
+        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:

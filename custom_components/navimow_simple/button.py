@@ -73,3 +73,4 @@ class NavimowButton(CoordinatorEntity[NavimowCoordinator], ButtonEntity):
             self.coordinator.device_sn, self.entity_description.action
         )
         await self.coordinator.async_request_refresh()
+        self.coordinator.async_schedule_post_command_refresh()

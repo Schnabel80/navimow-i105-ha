@@ -67,6 +67,7 @@ class NavimowLawnMower(CoordinatorEntity[NavimowCoordinator], LawnMowerEntity):
             self.coordinator.device_sn, action
         )
         await self.coordinator.async_request_refresh()
+        self.coordinator.async_schedule_post_command_refresh()
 
     async def async_start_mowing(self) -> None:
         # Start aus PAUSED behandelt die API über StartStop/PauseUnpause
