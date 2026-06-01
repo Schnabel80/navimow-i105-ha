@@ -17,5 +17,10 @@
       "user_rejected_authorize": "Autorisierung abgebrochen."
     },
     "create_entry": { "default": "Navimow erfolgreich verbunden." }
+  },
+  "entity": {
+    "sensor": {
+      "status": { "name": "Status" }
+    }
   }
 }
