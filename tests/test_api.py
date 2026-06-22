@@ -7,6 +7,7 @@ from custom_components.navimow_simple.api import (
     NavimowApiError,
     NavimowAuthError,
     NavimowClient,
+    NavimowRateLimitError,
 )
 
 
@@ -185,6 +186,25 @@ async def test_api_error_on_non_success_code(tokens):
         async with aiohttp.ClientSession() as session:
             client = NavimowClient(session, tokens)
             with pytest.raises(NavimowApiError):
+                await client.async_get_status("SN1")
+
+
+def test_rate_limit_error_is_api_error():
+    # Muss von NavimowApiError erben → `except NavimowError` greift weiterhin.
+    assert issubclass(NavimowRateLimitError, NavimowApiError)
+
+
+@pytest.mark.asyncio
+async def test_circuit_breaker_raises_rate_limit_error(tokens):
+    # 4001 = Gateway-Circuit-Breaker → eigener transienter Fehlertyp.
+    with aioresponses() as m:
+        m.post(
+            f"{const.BASE_URL}{const.PATH_STATUS}",
+            payload={"code": 4001, "desc": "url Circuit Breaker"},
+        )
+        async with aiohttp.ClientSession() as session:
+            client = NavimowClient(session, tokens)
+            with pytest.raises(NavimowRateLimitError):
                 await client.async_get_status("SN1")
 
 

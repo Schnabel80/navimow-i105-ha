@@ -11,6 +11,7 @@ from .const import (
     ALREADY_IN_STATE,
     AUTH_ERROR_CODES,
     BASE_URL,
+    CIRCUIT_BREAKER_CODES,
     COMMANDS,
     PATH_AUTH_LIST,
     PATH_COMMANDS,
@@ -30,6 +31,10 @@ class NavimowAuthError(NavimowError):
 
 class NavimowApiError(NavimowError):
     """Sonstiger API-/HTTP-Fehler."""
+
+
+class NavimowRateLimitError(NavimowApiError):
+    """Gateway drosselt (Circuit Breaker, 4001) — transient, Backoff."""
 
 
 class TokenSource(Protocol):
@@ -86,6 +91,10 @@ class NavimowClient:
             raise NavimowAuthError(f"Auth abgelehnt bei {path} (code={code})")
         if code != SUCCESS_CODE:
             desc = body.get("desc") if isinstance(body, dict) else None
+            if str(code) in CIRCUIT_BREAKER_CODES:
+                raise NavimowRateLimitError(
+                    f"API gedrosselt bei {path}: code={code} desc={desc}"
+                )
             raise NavimowApiError(
                 f"API-Fehler bei {path}: code={code} desc={desc}"
             )

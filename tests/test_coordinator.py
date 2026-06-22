@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -5,6 +7,11 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from custom_components.navimow_simple.api import (
     NavimowAuthError,
     NavimowError,
+    NavimowRateLimitError,
+)
+from custom_components.navimow_simple.const import (
+    BACKOFF_INTERVAL_SECONDS,
+    UPDATE_INTERVAL_SECONDS,
 )
 from custom_components.navimow_simple.coordinator import (
     NavimowCoordinator,
@@ -61,6 +68,37 @@ async def test_update_api_error_raises_update_failed(hass):
     )
     with pytest.raises(UpdateFailed):
         await coord._async_update_data()
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_triggers_backoff(hass):
+    # Circuit Breaker → längeres Poll-Intervall (Breaker abkühlen lassen).
+    coord = NavimowCoordinator(
+        hass,
+        _FakeClient(error=NavimowRateLimitError("circuit breaker")),
+        device_sn="SN1",
+        device_name="Mäher",
+    )
+    with pytest.raises(UpdateFailed):
+        await coord._async_update_data()
+    assert coord.update_interval == timedelta(seconds=BACKOFF_INTERVAL_SECONDS)
+
+
+@pytest.mark.asyncio
+async def test_success_after_backoff_resets_interval(hass):
+    # Nach Backoff stellt der erste Erfolg das normale Intervall wieder her.
+    client = _FakeClient(
+        {
+            "vehicleState": "isDocked",
+            "capacityRemaining": [{"unit": "PERCENTAGE", "rawValue": 50}],
+        }
+    )
+    coord = NavimowCoordinator(
+        hass, client, device_sn="SN1", device_name="Mäher"
+    )
+    coord.update_interval = timedelta(seconds=BACKOFF_INTERVAL_SECONDS)
+    await coord._async_update_data()
+    assert coord.update_interval == timedelta(seconds=UPDATE_INTERVAL_SECONDS)
 
 
 def test_extract_battery_none_when_empty():

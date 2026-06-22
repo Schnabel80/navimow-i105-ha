@@ -40,6 +40,14 @@ POST_COMMAND_REFRESH_DELAY_SECONDS: Final = 10
 # --- Fehlercodes (Auth) ------------------------------------------------
 AUTH_ERROR_CODES: Final = frozenset({"4003", "TOKEN_EMPTY"})
 
+# --- Drosselung / Circuit Breaker --------------------------------------
+# Das OpenAPI-Gateway sperrt einen Endpoint nach wiederholten Upstream-
+# Fehlern temporär (code 4001 "url Circuit Breaker"). Solange das anliegt,
+# pollt die Integration deutlich seltener (BACKOFF_INTERVAL_SECONDS), damit
+# sie den Breaker nicht durch den normalen 90-s-Takt selbst warm hält.
+CIRCUIT_BREAKER_CODES: Final = frozenset({"4001"})
+BACKOFF_INTERVAL_SECONDS: Final = 600
+
 # --- vehicleState -> LawnMowerActivity (autoritativ aus SDK) -----------
 STATE_MAP: Final[dict[str, LawnMowerActivity]] = {
     "isDocked": LawnMowerActivity.DOCKED,

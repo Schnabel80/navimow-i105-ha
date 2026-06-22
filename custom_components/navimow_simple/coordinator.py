@@ -13,8 +13,9 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .api import NavimowAuthError, NavimowError
+from .api import NavimowAuthError, NavimowError, NavimowRateLimitError
 from .const import (
+    BACKOFF_INTERVAL_SECONDS,
     DOMAIN,
     POST_COMMAND_REFRESH_DELAY_SECONDS,
     UPDATE_INTERVAL_SECONDS,
@@ -76,8 +77,24 @@ class NavimowCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             status = await self.client.async_get_status(self.device_sn)
         except NavimowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
+        except NavimowRateLimitError as err:
+            # Gateway drosselt → seltener pollen, damit der Circuit Breaker
+            # abkühlen kann (sonst hält der normale 90-s-Takt ihn warm).
+            backoff = timedelta(seconds=BACKOFF_INTERVAL_SECONDS)
+            if self.update_interval != backoff:
+                _LOGGER.warning(
+                    "Navimow OpenAPI gedrosselt (%s) — Poll-Backoff auf %ss",
+                    err,
+                    BACKOFF_INTERVAL_SECONDS,
+                )
+                self.update_interval = backoff
+            raise UpdateFailed(str(err)) from err
         except NavimowError as err:
             raise UpdateFailed(str(err)) from err
+        # Erfolg → normales Intervall wiederherstellen (nach evtl. Backoff).
+        normal = timedelta(seconds=UPDATE_INTERVAL_SECONDS)
+        if self.update_interval != normal:
+            self.update_interval = normal
         return {
             "state": status.get("vehicleState"),
             "battery": _extract_battery(status),
